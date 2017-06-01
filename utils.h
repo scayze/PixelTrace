@@ -6,12 +6,13 @@
 #include <potracelib.h>
 #include <iostream>
 #include <fstream>
+#include <exception>
 
 struct Settings
 {
     float scale = 4.f;
     bool stack = true;
-    std::string input_name;
+    std::string input_name = "";
     std::string output_name = "";
     potrace_param_s params = *potrace_param_default();
 };
@@ -31,6 +32,7 @@ class Utils
     static void svg_line_to(std::stringstream & ss, potrace_dpoint_t p);
 
     static Settings * readSettings(int argc, char* argv[]);
+    static void terminate(std::string reason);
 };
 
 #endif

@@ -261,8 +261,8 @@ void Utils::saveSVG_Multi(std::vector<sf::Image*> &images, std::vector<sf::Color
     f.open(options->output_name + ".svg", std::ofstream::out | std::ofstream::trunc);
     f << ss.str();
     f.close();
-
-    std::string command_export = std::string("inkscape -z --export-area-page -w " + std::to_string(x*options->scale) + " -h " + std::to_string(y*options->scale) +  " -f " + options->output_name + ".svg" + " --export-png=" + options->output_name + ".png");
+    std::cout << "Exporting SVG as PNG: " << options->output_name << ".svg" << "\n";
+    std::string command_export = std::string("inkscape -z --export-area-page -w " + std::to_string(x*options->scale) + " -h " + std::to_string(y*options->scale) +  " -f " + options->output_name + ".svg" + " --export-png=" + options->output_name + ".png > nul");
     system(command_export.c_str());
 }
 
@@ -302,14 +302,21 @@ Settings * Utils::readSettings(int argc, char* argv[])
 {
     options = new Settings();
 
-	for(int i=0; i < argc-1; i++)
+	for(int i=0; i < argc; i++)
     {
         std::string arg(argv[i]); 
-        std::string val(argv[i+1]);
+        std::string val;
+        if(i == argc-1) val = "";
+        else            val = argv[i+1];
+        
         if(arg == "-f" || arg == "--file")
         {
             options->input_name = val;
-            if(options->output_name == "") options->output_name = (val + "out_");
+            if(options->output_name == "") {
+                size_t lastindex = val.find_last_of("."); 
+                std::string rawname = val.substr(0, lastindex); 
+                options->output_name = (rawname + "_out");
+            }
         }
         else if(arg == "-o" || arg == "--output")
         {
@@ -339,7 +346,32 @@ Settings * Utils::readSettings(int argc, char* argv[])
             else if(val == "white") options->params.turnpolicy = POTRACE_TURNPOLICY_WHITE;
             else options->params.turnpolicy = std::stoi(val);
         }
+        else if(arg == "--help")
+        {
+            std::cout << "ColorTrace v1.0. Written by Manuel Strey"<< std::endl;
+            std::cout << "Command-line Options:"<< std::endl;
+            std::cout << "--help            : Display different options and parameters"<< std::endl;
+            std::cout << "-f, --file        : define input-file (.bmp, .png, .tga, .jpg, .gif, .psd, .hdr, .pic)"<< std::endl;
+            std::cout << "-o, --output      : define output-name (without format!)"<< std::endl;
+            std::cout << "-t, --turdsize    : vectorization suppresses speckles of up to this size (default 2)"<< std::endl;
+            std::cout << "-a, --alphamax    : vectorization corner threshold parameter (default 1)"<< std::endl;
+            std::cout << "-O, --opttolerance: curve optimization tolerance (default 0.2)"<< std::endl;
+            std::cout << "-z, --turnpolicy  : how to resolve ambiguities in path decomposition (black,white,left,right,majority,minority,random)"<< std::endl;  
+
+            terminate("");
+        }
+    }
+
+    if(options->input_name == "")
+    {
+        terminate("ERROR: No input file defined.");
     }
 
     return options;
+}
+
+void Utils::terminate(std::string r)
+{
+    std::cerr << r << std::endl;
+    std::abort();
 }

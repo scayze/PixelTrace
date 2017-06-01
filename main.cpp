@@ -1,12 +1,12 @@
-
-#include <SFML/Graphics.hpp>
 #include <string>
 #include "utils.h"
+
 
 std::vector<sf::Image *> images;
 std::vector<sf::Color> colors;
 
 Settings * settings;
+
 
 bool stack = true;
 bool noAlpha = false;
@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
 	//Utils::saveSVG_Single(&image);
 
 	//Goes though every pixel and checks if a layer has been created. if not, create one
-
+	std::cout << "Vectorizing " << settings->input_name << "\n";
 	for(int x = 0; x<image.getSize().x; x++)
 	{
 		for(int y = 0; y<image.getSize().y; y++)
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 
 	Utils::saveSVG_Multi(images,colors);
 
-	std::cout << counter.getElapsedTime().asSeconds();
+	std::cout << "Processed in: " << counter.getElapsedTime().asSeconds() << "s\n";
 	return 0;
 }
 
