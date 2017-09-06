@@ -4,11 +4,11 @@
 #include <string.h>
 
 
-Settings * set;
+static Settings * settings;
 
 void SVG_Parser::init(Settings * o)
 {
-    set = o;
+    settings = o;
 }
 
 void SVG_Parser::draw_path(std::ofstream &ss, potrace_state_t & traced_image)
@@ -30,18 +30,19 @@ void SVG_Parser::draw_path(std::ofstream &ss, potrace_state_t & traced_image)
 }
 
 
-void SVG_Parser::save_SVG(std::vector<const potrace_bitmap_t*> &bitmaps, std::vector<sf::Color> &colors)
+void SVG_Parser::save_SVG(std::vector<const potrace_bitmap_t*> &bitmaps, std::vector<Color> &colors)
 {
-
+    //Get the size of the image
     const potrace_bitmap_t * size_image = bitmaps[0];
     int x = size_image->w;
     int y = size_image->h;
 
+    //Open an Filestream to the svg file
     std::ofstream ss;
-    ss.open(set->output_name + ".svg", std::ofstream::out | std::ofstream::trunc);
+    ss.open(settings->output_name + ".svg", std::ofstream::out | std::ofstream::trunc);
 
 
-
+    std::cout << "Parsing SVG" << std::endl;
     //Write HEAD
     ss  << "<?xml version=\"1.0\" standalone=\"no\"?>" << "\n"
         << "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20010904//EN\"" << "\n"
@@ -56,40 +57,49 @@ void SVG_Parser::save_SVG(std::vector<const potrace_bitmap_t*> &bitmaps, std::ve
 
     //Write Metadata
     ss << "<metadata>" << "\n";
-    ss << "Created by ColorTrace written by Manuel Strey" << "\n";
+    ss << "Created by PixelTrace written by Manuel Strey" << "\n";
     ss << "</metadata>" << "\n";
 
     //Write g transform
     ss << "<g transform=\"translate(" << 0 << "," << y << ") scale(0.100000,-0.100000)\">" << "\n";
 
-    for(int i=bitmaps.size()-1; i >= 0; i--)
-    //for(unsigned int i=0; i < images.size(); i++)
+    //Work each path until none left
+    while(bitmaps.size() > 0)
     {
-        const potrace_bitmap_t * bm = bitmaps[i];
-        potrace_state_t * traced_image = potrace_trace(&set->params,bm);
-
-        if(traced_image->plist == NULL) continue;
+        potrace_state_t * traced_image = potrace_trace(&settings->params,bitmaps.back());
 
         //Write path beginning
         ss << "<path ";
-        ss << "style=\"fill:" << Utils::toHex(colors[i]) << " fill-opacity:" << (float)colors[i].a/255.f << "\"" << "\n";
+        ss << "style=\"fill:" << Utils::toHex(colors.back()) << " fill-opacity:" << (float)colors.back().a/255.f << "\"" << "\n";
         ss << "d=\"";
 
-        //Go through all pathes
-        do
-        {       
-            //std::cout << "HUGE AS SIGN: " << (char)traced_image->plist->sign << std::endl;
-            draw_path(ss,*traced_image);
+       // std::cout << "Tracing bitmap: " << bitmaps.size() << std::endl;
 
-            ss << "z " << "\n";
+        //Go through all pathes
+        while(traced_image->plist != NULL)
+        {       
+            //Draw the path
+            draw_path(ss,*traced_image);
+            //Jump to beginning
+            ss << "z ";
+            //Next path
             traced_image->plist = traced_image->plist->next;
 
-        }while(traced_image->plist != NULL);
+            //std::cout << "Tracing Path" << std::endl;
+            ss.flush();
+
+        }
+
+        //Free state and close the path;
         potrace_state_free(traced_image);
-        //delete bm->map;
-        //delete bm;
-        //delete traced_image;
-         ss << "\"/>" << "\n"; 
+        ss << "\"/>" << "\n"; 
+
+        //Pop the worked path and color
+        delete bitmaps.back()->map;
+        delete bitmaps.back();
+        bitmaps.pop_back();
+        colors.pop_back();
+
     }
     
     //End of file
@@ -97,12 +107,11 @@ void SVG_Parser::save_SVG(std::vector<const potrace_bitmap_t*> &bitmaps, std::ve
     ss << "</svg>" << "\n";
 
     //Force stringstream down the files throat and scream the generated shit at it until it obeys
-
     ss.close();
 
-    std::cout << "Exporting SVG as PNG: " << set->output_name << ".svg" << "\n";
-    std::string command_export = std::string("inkscape -z --export-area-page -w " + std::to_string(x*set->scale) + " -h " + std::to_string(y*set->scale) +  " -f " + set->output_name + ".svg" + " --export-png=" + set->output_name + ".png > nul");
-    system(command_export.c_str());
+    //std::cout << "Exporting SVG as PNG: " << settings->output_name << ".svg" << "\n";
+    //std::string command_export = std::string("inkscape -z -C -w " + std::to_string(x*settings->scale) + " -h " + std::to_string(y*settings->scale) +  " -f \"" + settings->output_name + ".svg\"" + " --export-png=\"" + settings->output_name + "\" > nul");
+    //system(command_export.c_str());
 }
 
 potrace_dpoint_t SVG_Parser::unit(potrace_dpoint_t p)

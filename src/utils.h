@@ -1,12 +1,12 @@
 #ifndef Utils_h
 #define Utils_h
 
-#include <SFML/Graphics.hpp>
 #include <vector>
 #include <potracelib.h>
 #include <iostream>
 #include <fstream>
 #include <exception>
+#include "image.h"
 
 struct Settings
 {
@@ -20,14 +20,14 @@ struct Settings
 class Utils
 {
     public:
-    static void removeAlpha(sf::Image * i);
-    static std::string toHex(sf::Color c);
-    static const potrace_bitmap_t * convertToBitmap(sf::Image * i);
+    static void removeAlpha(Image * i);
+    static std::string toHex(Color c);
+    static const potrace_bitmap_t * convertToBitmap(Image * i);
 
     static Settings * readSettings(int argc, char* argv[]);
     static void terminate(std::string reason);
 
-    sf::Image * quantization(sf::Image * im);
+    Image * quantization(Image * im);
 };
 
 #endif

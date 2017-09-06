@@ -10,7 +10,7 @@
 
 Settings * options;
 
-std::string Utils::toHex(sf::Color c)
+std::string Utils::toHex(Color c)
 {
 	unsigned long hex = ( (c.r & 0xff) << 16) + ((c.g & 0xff) << 8) + (c.b & 0xff);
 	std::stringstream ss;
@@ -18,28 +18,33 @@ std::string Utils::toHex(sf::Color c)
 	return ss.str();
 }
 
-void Utils::removeAlpha(sf::Image * i)
+void Utils::removeAlpha(Image * i)
 {
-    for(unsigned int x=0; x < i->getSize().x; x++)
+    int width;
+	int height;
+    i->get_size(width,height);
+    
+    for(unsigned int x=0; x < width; x++)
     {
-        for(unsigned int y=0; y < i->getSize().y; y++)
+        for(unsigned int y=0; y < height; y++)
         {
-            sf::Color c = i->getPixel(x,y);
+            Color c = i->get_pixel(x,y);
             if( c.a != 0 && c.a != 255 )
             {
-                i->setPixel(x,y,sf::Color(c.r,c.g,c.b,255));
+                i->set_pixel(x,y,Color(c.r,c.g,c.b,255));
             }
         } 
     }
 }
 
-const potrace_bitmap_t * Utils::convertToBitmap(sf::Image * im)
+const potrace_bitmap_t * Utils::convertToBitmap(Image * im)
 {
     potrace_bitmap_t * bitmap = new potrace_bitmap_t;
-    bitmap->w = im->getSize().x;
-    bitmap->h = im->getSize().y;
+    im->get_size(bitmap->w,bitmap->h);
+    //bitmap->w = im->getSize().x;
+    //bitmap->h = im->getSize().y;
     const unsigned int digit_count =  std::numeric_limits<unsigned long>::digits;
-    bitmap->dy = (im->getSize().x + digit_count - 1) / digit_count;
+    bitmap->dy = (bitmap->w + digit_count - 1) / digit_count;
     bitmap->map = new potrace_word[bitmap->h*bitmap->dy];
     //bitmap->map = arr;
     
@@ -56,7 +61,7 @@ const potrace_bitmap_t * Utils::convertToBitmap(sf::Image * im)
 
                 if(x > bitmap->w) continue;
 
-                sf::Color c = im->getPixel(x,h);
+                Color c = im->get_pixel(x,h);
                 if(c.a == 255 && c.r==0 && c.b == 0) bitmap->map[word] = bitmap->map[word] + 1;
             } 
             std::bitset<digit_count> o(bitmap->map[word]);
@@ -87,7 +92,8 @@ Settings * Utils::readSettings(int argc, char* argv[])
         if(arg == "-f" || arg == "--file")
         {
             options->input_name = val;
-            if(options->output_name == "") {
+            if(options->output_name == "")
+            {
                 size_t lastindex = val.find_last_of("."); 
                 std::string rawname = val.substr(0, lastindex); 
                 options->output_name = (rawname + "_out");
@@ -151,7 +157,7 @@ void Utils::terminate(std::string r)
     std::abort();
 }
 
-sf::Image * Utils::quantization(sf::Image * im)
+Image * Utils::quantization(Image * im)
 {
 
 }

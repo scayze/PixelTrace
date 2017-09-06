@@ -4,3 +4,6 @@ bin/
 gfx/
 gfxCOPY/
 gfxDONE/
+anm_multi.py
+clearSVG.sh
+scale.sh

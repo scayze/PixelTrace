@@ -1,74 +1,87 @@
 #include <string>
 #include "utils.h"
 #include "SVG_Parser.h"
+#include "image.h"
 
-
-sf::Image * image = nullptr;
-std::vector<sf::Color> colors;
+Image * image;
+std::vector<Color> colors;
 std::vector<const potrace_bitmap_t*> bitmaps;
 
 Settings * settings;
 
-
-bool stack = true;
-bool noAlpha = false;
-
-void stackImage(sf::Image * i)
+void stackImage(Image * i)
 {
-	for(unsigned int x = 0; x < i->getSize().x; x++)
+	int width;
+	int height;
+	i->get_size(width,height);
+	//i->set_pixel(0,1,Color(0,0,0,255));
+
+	for(int x = 0; x < width; x++)
 	{
-		for(unsigned int y = 0; y < i->getSize().y; y++)
+		for(int y = 0; y < height; y++)
 		{
-			if(i->getPixel(x,y) != sf::Color(255,255,255,255))
+			if(i->get_pixel(x,y) != Color(255,255,255,255))
 			{
-				image->setPixel(x,y,sf::Color(0,0,0,255));//colors[current]);
+				image->set_pixel(x,y,Color(0,0,0,255));
 			}
 		}	
 	}
 }
 
-void createImage(sf::Image * i, sf::Color c)
+void createImage(Image * i, Color c)
 {
-	sf::Image color_image;
-	color_image.create(i->getSize().x,i->getSize().y,sf::Color(255,255,255,255));
-	for(unsigned int x = 0; x<color_image.getSize().x; x++)
+	int width;
+	int height;
+	i->get_size(width,height);
+
+	Image color_image;
+	color_image.create(width,height,Color(255,255,255,255),4);
+	
+
+	for(int x = 0; x<width; x++)
 	{
-		for(unsigned int y = 0; y<color_image.getSize().y; y++)
+		for(int y = 0; y<height; y++)
 		{
-			if(i->getPixel(x,y) == c)
+			if(i->get_pixel(x,y) == c)
 			{
-				color_image.setPixel(x,y,sf::Color(0,0,0,255));
+				color_image.set_pixel(x,y,Color(0,0,0,255));
 			}
 		}	
 	}
 
-	if(stack) stackImage(&color_image);
+	stackImage(&color_image);
 	bitmaps.push_back(Utils::convertToBitmap(image));
+
+	std::vector<Color> fake_colors = colors;
+	std::vector<const potrace_bitmap_t*> fake_bitmaps = bitmaps;
+	//SVG_Parser::save_SVG(fake_bitmaps,fake_colors);
 }
 
 int main(int argc, char* argv[])
 {
-	sf::Clock counter;
-	sf::Image input_image;
+	Image * input_image;
 	
 	settings = Utils::readSettings(argc,argv);
 	SVG_Parser::init(settings);
-	input_image.loadFromFile(settings->input_name);
-	//Utils::saveSVG_Single(&image);
-	input_image.flipVertically();
+	input_image = new Image(settings->input_name);
+	int width;
+	int height;
+	input_image->get_size(width,height);
+	input_image->flip();
 
-	image = new sf::Image();
-	image->create(input_image.getSize().x,input_image.getSize().y,sf::Color(255,255,255,255));
+	image = new Image();
+	image->create(width,height,Color(255,255,255,255),4);
 
 	//Goes though every pixel and checks if a layer has been created. if not, create one
 	std::cout << "Vectorizing " << settings->input_name << "\n";
-	for(int x = 0; x<input_image.getSize().x; x++)
+	for(int x = 0; x<width; x++)
 	{
-		for(int y = 0; y<input_image.getSize().y; y++)
+		for(int y = 0; y<height; y++)
 		{
-			
-			sf::Color color = input_image.getPixel(x,y);
+			Color color = input_image->get_pixel(x,y);
+
 			bool layer_exists = false || color.a == 0;	
+
 			for(unsigned int i = 0; i<colors.size(); i++)
 			{
 				if(color == colors[i]) layer_exists = true;
@@ -77,17 +90,14 @@ int main(int argc, char* argv[])
 			if(!layer_exists)
 			{
 				colors.push_back(color);
-				createImage(&input_image, color);
+				//std::cout << "Color: " << (int)color.r << " " << (int)color.g << " " << (int)color.b << " " << (int)color.a << std::endl;
+				createImage(input_image, color);
 			}
+			if(colors.size()>255) Utils::terminate("ERROR: Too many colors");
 		}	
 	}
 
 	SVG_Parser::save_SVG(bitmaps,colors);
 
-	std::cout << "Processed in: " << counter.getElapsedTime().asSeconds() << "s\n";
 	return 0;
 }
-
-
-
-
